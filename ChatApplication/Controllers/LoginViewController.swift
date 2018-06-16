@@ -65,7 +65,7 @@ class LoginViewController: UIViewController {
         
         guard let email = emailTextField.text else{fatalError("No Email entered")}
         guard let password = passwordTextField.text else{fatalError("No password has been entered")}
-        guard let name = nameTextField.text else{fatalError("Please enter the name")}
+        guard let name = nameTextField.text else{fatalError("Please enter your name")}
         
         Auth.auth().createUser(withEmail: email, password: password) { (result, error) in
             

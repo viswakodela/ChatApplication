@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		45243E37AF207C6A384145CA /* Pods_ChatApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F8C908B8229F640FC05B11 /* Pods_ChatApplication.framework */; };
+		BD0D0D9520D57D6100754061 /* NewMessageTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0D0D9420D57D6100754061 /* NewMessageTableViewController.swift */; };
+		BD0D0D9820D5925200754061 /* Users.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0D0D9720D5925200754061 /* Users.swift */; };
 		BD32916620CDECA8000B9D2A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD32916520CDECA8000B9D2A /* AppDelegate.swift */; };
-		BD32916820CDECA8000B9D2A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD32916720CDECA8000B9D2A /* ViewController.swift */; };
+		BD32916820CDECA8000B9D2A /* MessagesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD32916720CDECA8000B9D2A /* MessagesController.swift */; };
 		BD32916B20CDECA8000B9D2A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BD32916920CDECA8000B9D2A /* Main.storyboard */; };
 		BD32916D20CDECA9000B9D2A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BD32916C20CDECA9000B9D2A /* Assets.xcassets */; };
 		BD32917020CDECA9000B9D2A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BD32916E20CDECA9000B9D2A /* LaunchScreen.storyboard */; };
@@ -20,9 +22,11 @@
 /* Begin PBXFileReference section */
 		389780FA0262CFA57D9456BF /* Pods-ChatApplication.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ChatApplication.debug.xcconfig"; path = "Pods/Target Support Files/Pods-ChatApplication/Pods-ChatApplication.debug.xcconfig"; sourceTree = "<group>"; };
 		6CFC7AC6D65F592B4E44FA47 /* Pods-ChatApplication.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ChatApplication.release.xcconfig"; path = "Pods/Target Support Files/Pods-ChatApplication/Pods-ChatApplication.release.xcconfig"; sourceTree = "<group>"; };
+		BD0D0D9420D57D6100754061 /* NewMessageTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageTableViewController.swift; sourceTree = "<group>"; };
+		BD0D0D9720D5925200754061 /* Users.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Users.swift; sourceTree = "<group>"; };
 		BD32916220CDECA8000B9D2A /* ChatApplication.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChatApplication.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD32916520CDECA8000B9D2A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		BD32916720CDECA8000B9D2A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		BD32916720CDECA8000B9D2A /* MessagesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesController.swift; sourceTree = "<group>"; };
 		BD32916A20CDECA8000B9D2A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		BD32916C20CDECA9000B9D2A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BD32916F20CDECA9000B9D2A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -52,6 +56,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		BD0D0D9620D5921E00754061 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				BD0D0D9720D5925200754061 /* Users.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
 		BD32915920CDECA8000B9D2A = {
 			isa = PBXGroup;
 			children = (
@@ -74,6 +86,7 @@
 			isa = PBXGroup;
 			children = (
 				BD32916520CDECA8000B9D2A /* AppDelegate.swift */,
+				BD0D0D9620D5921E00754061 /* Model */,
 				BD32917720CDFDA1000B9D2A /* Controllers */,
 				BD32916920CDECA8000B9D2A /* Main.storyboard */,
 				BD32916C20CDECA9000B9D2A /* Assets.xcassets */,
@@ -87,8 +100,9 @@
 		BD32917720CDFDA1000B9D2A /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
-				BD32916720CDECA8000B9D2A /* ViewController.swift */,
+				BD32916720CDECA8000B9D2A /* MessagesController.swift */,
 				BD32917820CDFDD0000B9D2A /* LoginViewController.swift */,
+				BD0D0D9420D57D6100754061 /* NewMessageTableViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -221,8 +235,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD0D0D9520D57D6100754061 /* NewMessageTableViewController.swift in Sources */,
 				BD32917920CDFDD0000B9D2A /* LoginViewController.swift in Sources */,
-				BD32916820CDECA8000B9D2A /* ViewController.swift in Sources */,
+				BD0D0D9820D5925200754061 /* Users.swift in Sources */,
+				BD32916820CDECA8000B9D2A /* MessagesController.swift in Sources */,
 				BD32916620CDECA8000B9D2A /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

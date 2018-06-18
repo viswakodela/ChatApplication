@@ -100,8 +100,8 @@
 		BD32917720CDFDA1000B9D2A /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
-				BD32916720CDECA8000B9D2A /* MessagesController.swift */,
 				BD32917820CDFDD0000B9D2A /* LoginViewController.swift */,
+				BD32916720CDECA8000B9D2A /* MessagesController.swift */,
 				BD0D0D9420D57D6100754061 /* NewMessageTableViewController.swift */,
 			);
 			path = Controllers;

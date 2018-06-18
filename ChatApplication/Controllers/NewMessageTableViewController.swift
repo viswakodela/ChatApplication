@@ -30,6 +30,7 @@ class NewMessageTableViewController: UITableViewController {
                 let user = Users()
                 user.email = dictionary["email"] as? String
                 user.name = dictionary["name"] as? String
+//                user.profileImageUrl = dictionary["profileImageUrl"]
                 self.users.append(user)
                 // This will crash because it is bcakground thread, So lets call Dispatch queue async to fix
                 DispatchQueue.main.async {

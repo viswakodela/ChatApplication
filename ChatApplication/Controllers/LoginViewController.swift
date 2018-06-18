@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class LoginViewController: UIViewController {
+class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
     let containerView: UIView = {
         
@@ -74,22 +74,53 @@ class LoginViewController: UIViewController {
             }
             
             guard let uid = result?.user.uid else{fatalError("No uid for the User")}
+            
+            let imageID = NSUUID().uuidString
             // successfully authenticated user
-            var ref: DatabaseReference!
-            ref = Database.database().reference()
-            let usersReference = ref.child("users").child(uid)
-            let values = ["name": name, "email": email]
-            usersReference.updateChildValues(values, withCompletionBlock: { (error, ref) in
-                
-                if error != nil {
-                    print(error ?? "")
-                }
-                
-                self.dismiss(animated: true, completion: nil)
-            })
+            let storageRef = Storage.storage().reference().child("\(imageID).png")
+            if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!){
+            
+                storageRef.putData(uploadData, metadata: nil, completion: { (metadata, error) in
+                    if error != nil {
+                        print(error ?? "Unknown error")
+                    }
+                    
+
+                    storageRef.downloadURL(completion: { (url, err) in
+                        if error != nil{
+                            print(error ?? "")
+                        }
+                        
+                        if let profileUrl = url?.absoluteString{
+                            
+                            let values = ["name": name, "email": email, "profileImageUrl": profileUrl]
+                            self.registerUserIntoDatabasewith(uid: uid, values: values as [String : AnyObject])
+                        }
+                        
+                    })
+
+                })
+            }
         }
-        
     }
+            
+    private func registerUserIntoDatabasewith(uid: String, values: [String : AnyObject]) {
+                
+                var ref: DatabaseReference!
+                ref = Database.database().reference()
+                let usersReference = ref.child("users").child(uid)
+//                let values = ["name": name, "email": email, "profileIMageUIRL": metedata.downloadUrl()]
+        
+                usersReference.updateChildValues(values, withCompletionBlock: { (error, ref) in
+                    
+                    if error != nil {
+                        print(error ?? "")
+                    }
+                    
+                    self.dismiss(animated: true, completion: nil)
+                })
+            }
+    
     
     let nameTextField: UITextField = {
         
@@ -137,15 +168,19 @@ class LoginViewController: UIViewController {
         
     }()
     
-    let profileImageView: UIImageView = {
+    lazy var profileImageView: UIImageView = {
         
         let imageView = UIImageView()
         imageView.image = UIImage(named: "got")
         imageView.contentMode = .scaleAspectFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleProfileImageView)))
+        imageView.isUserInteractionEnabled = true
         return imageView
         
     }()
+    
+  
     
     let loginRegisterSegmentedControl: UISegmentedControl = {
         
@@ -285,7 +320,43 @@ class LoginViewController: UIViewController {
         
         return .lightContent
     }
-
+    
+    @objc func handleProfileImageView() {
+        
+        print("picker tapped")
+        let imagePicker = UIImagePickerController()
+        imagePicker.delegate = self
+        imagePicker.sourceType = .photoLibrary
+        imagePicker.allowsEditing = true
+        present(imagePicker, animated: true, completion: nil)
+        
+    }
+        
+        // Protocol for the UIImagePickerControllerDelegate
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
+            
+            var userPickedImage: UIImage?
+            
+            if let editedImage = info[UIImagePickerControllerEditedImage] as? UIImage {
+                userPickedImage = editedImage
+            }
+            else if let originalImage = info[UIImagePickerControllerOriginalImage] as? UIImage {
+                userPickedImage = originalImage
+            }
+            
+            if let selectedImage = userPickedImage{
+                profileImageView.image = selectedImage as UIImage
+            }
+            
+            dismiss(animated: true, completion: nil)
+        }
+    
+        
+        // Protocol for the UINAvigationControllerDelegate
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            dismiss(animated: true, completion: nil)
+        }
+    
 }
 
 extension UIColor {
@@ -294,3 +365,5 @@ extension UIColor {
         self.init(red: r/255, green: g/255, blue: b/255, alpha: 1)
     }
 }
+
+

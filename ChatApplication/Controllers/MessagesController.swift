@@ -43,6 +43,7 @@ class MessagesController: UITableViewController {
         
         do {
             try Auth.auth().signOut()
+//            navigationItem.title = nil
         }catch {
             print("Logout Error")
         }

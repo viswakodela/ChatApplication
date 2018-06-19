@@ -110,7 +110,6 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
                 ref = Database.database().reference()
                 let usersReference = ref.child("users").child(uid)
 //                let values = ["name": name, "email": email, "profileIMageUIRL": metedata.downloadUrl()]
-        
                 usersReference.updateChildValues(values, withCompletionBlock: { (error, ref) in
                     
                     if error != nil {
@@ -174,6 +173,8 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         imageView.image = UIImage(named: "got")
         imageView.contentMode = .scaleAspectFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.layer.cornerRadius = 40
+        imageView.layer.masksToBounds = true
         imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleProfileImageView)))
         imageView.isUserInteractionEnabled = true
         return imageView

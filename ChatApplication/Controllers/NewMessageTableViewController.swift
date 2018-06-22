@@ -19,7 +19,7 @@ class NewMessageTableViewController: UITableViewController {
         super.viewDidLoad()
 
         tableView.register(userCell.self, forCellReuseIdentifier: cellID)
-        tableView.rowHeight = 56
+        tableView.rowHeight = 72
         fetchUser()
     }
     
@@ -55,8 +55,7 @@ class NewMessageTableViewController: UITableViewController {
         cell.detailTextLabel?.text = users[indexPath.row].email
         
         if let profileImageUrl = users[indexPath.row].profileImageUrl{
-            
-            cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+            cell.profileImageView.loadImageUsingCacheWithUrlString(profileImageUrl)
         }
         
         return cell

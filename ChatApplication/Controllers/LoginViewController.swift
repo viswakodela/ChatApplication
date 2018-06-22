@@ -11,6 +11,7 @@ import Firebase
 
 class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
+    var messagesController = MessagesController()
     let containerView: UIView = {
         
         let view = UIView()
@@ -53,9 +54,10 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         guard let password = passwordTextField.text else {fatalError("Please enter a valid Password")}
         Auth.auth().signIn(withEmail: email, password: password) { (result, error) in
             if error != nil {
-                print(error ?? "Email enter is not registered")
+                print(error ?? "Email entered is not registered")
             }
             
+            self.messagesController.fetchUserAndSetUpNavBarTitle()
             self.dismiss(animated: true, completion: nil)
         }
         
@@ -77,8 +79,10 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
             
             let imageID = NSUUID().uuidString
             // successfully authenticated user
-            let storageRef = Storage.storage().reference().child("\(imageID).png")
-            if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!){
+            let storageRef = Storage.storage().reference().child("profile_images").child("\(imageID).jpeg")
+            
+            if let profileImage = self.profileImageView.image, let uploadData = UIImageJPEGRepresentation(profileImage, 0.1){
+//            if let uploadData = UIImagePNGRepresentation(self.profileImageView.image!){
             
                 storageRef.putData(uploadData, metadata: nil, completion: { (metadata, error) in
                     if error != nil {
@@ -116,6 +120,8 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
                         print(error ?? "")
                     }
                     
+//                    self.messagesController.fetchUserAndSetUpNavBarTitle()
+                    self.messagesController.fetchUserAndSetUpNavBarTitle()
                     self.dismiss(animated: true, completion: nil)
                 })
             }
@@ -170,7 +176,7 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
     lazy var profileImageView: UIImageView = {
         
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "got")
+        imageView.image = UIImage(named: "profile")
         imageView.contentMode = .scaleAspectFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.layer.cornerRadius = 40
@@ -181,7 +187,6 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         
     }()
     
-  
     
     let loginRegisterSegmentedControl: UISegmentedControl = {
         
@@ -198,6 +203,12 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         let title = loginRegisterSegmentedControl.titleForSegment(at: loginRegisterSegmentedControl.selectedSegmentIndex)
         
         loginButton.setTitle(title, for: .normal)
+        
+        if loginRegisterSegmentedControl.selectedSegmentIndex == 0 {
+            profileImageView.isHidden = true
+        }else {
+            profileImageView.isHidden = false
+        }
         
         containerViewHeightAncher?.constant = loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 100 : 150
         
@@ -225,12 +236,12 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
 
         view.addSubview(profileImageView)
         view.addSubview(loginRegisterSegmentedControl)
+
         
         containerViewConstraints()
         registerButtonConstraints()
         imageViewConstraints()
         constraimtsForSegmewntedControl()
-        
         
     }
     
@@ -298,6 +309,8 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         loginButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
     }
+    
+
     
     func imageViewConstraints() {
         

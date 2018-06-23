@@ -8,7 +8,6 @@
 
 import UIKit
 import Firebase
-import Alamofire
 
 class NewMessageTableViewController: UITableViewController {
     
@@ -62,9 +61,14 @@ class NewMessageTableViewController: UITableViewController {
         
     }
     
+    var messageController: MessagesController?
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        dismiss(animated: true) {
+            self.messageController?.showChatController()
+        }
     }
 }
 

@@ -60,6 +60,7 @@ class MessagesController: UITableViewController {
         self.navigationItem.titleView = titleView
         
         
+        
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.backgroundColor = UIColor.blue
@@ -93,7 +94,16 @@ class MessagesController: UITableViewController {
         containerView.centerXAnchor.constraint(equalTo: titleView.centerXAnchor).isActive = true
         containerView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor).isActive = true
  
+        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+    }
+    
+    
+    @objc func showChatController() {
         
+        
+        let chatController = chatLogController(collectionViewLayout: UICollectionViewFlowLayout())
+        self.navigationController?.pushViewController(chatController, animated: true)
+    
     }
     
     @objc func handleLogOut() {
@@ -112,6 +122,8 @@ class MessagesController: UITableViewController {
     
     @objc func handleNewMessage() {
         let newMessageController = NewMessageTableViewController()
+        //MARK:- Important
+        newMessageController.messageController = self
         let navBar = UINavigationController(rootViewController: newMessageController)
         newMessageController.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelBarButton))
         present(navBar, animated: true, completion: nil)

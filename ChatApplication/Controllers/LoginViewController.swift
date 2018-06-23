@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
 
     var messagesController = MessagesController()
     let containerView: UIView = {
@@ -173,6 +173,13 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         
     }()
     
+    
+    @objc func handleKeyboard() {
+        nameTextField.endEditing(true)
+        passwordTextField.endEditing(true)
+        emailTextField.endEditing(true)
+    }
+    
     lazy var profileImageView: UIImageView = {
         
         let imageView = UIImageView()
@@ -237,6 +244,10 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
         view.addSubview(profileImageView)
         view.addSubview(loginRegisterSegmentedControl)
 
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleKeyboard))
+        view.addGestureRecognizer(tapGesture)
+        
         
         containerViewConstraints()
         registerButtonConstraints()

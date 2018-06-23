@@ -11,6 +11,12 @@ import Firebase
 
 class chatLogController: UICollectionViewController, UITextFieldDelegate {
     
+    var user: Users? {
+        didSet {
+            navigationItem.title = user?.name
+        }
+    }
+    
     lazy var messageTextField: UITextField = {
         
         let texField = UITextField()
@@ -25,7 +31,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate {
         super.viewDidLoad()
         
         
-        navigationItem.title = "Chat Log Controller"
         collectionView?.backgroundColor = UIColor.white
         
         

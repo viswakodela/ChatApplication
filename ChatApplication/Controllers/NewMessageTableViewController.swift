@@ -67,7 +67,9 @@ class NewMessageTableViewController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
         
         dismiss(animated: true) {
-            self.messageController?.showChatController()
+            
+             let usr = self.users[indexPath.row]
+            self.messageController?.showChatController(user: usr)
         }
     }
 }

@@ -98,10 +98,11 @@ class MessagesController: UITableViewController {
     }
     
     
-    @objc func showChatController() {
+    @objc func showChatController(user: Users) {
         
         
         let chatController = chatLogController(collectionViewLayout: UICollectionViewFlowLayout())
+        chatController.user = user
         self.navigationController?.pushViewController(chatController, animated: true)
     
     }
@@ -115,14 +116,14 @@ class MessagesController: UITableViewController {
             print("Logout Error")
         }
         let loginController = LoginViewController()
-        //MARK:- Doubts here
+        //MARK:- This is nothing but delegating the messageController, We actually did this in the other way by naming it as var delegate: MessagesController? and call here as loginController.delegate = self
         loginController.messagesController = self
         present(loginController, animated: true, completion: nil)
     }
     
     @objc func handleNewMessage() {
         let newMessageController = NewMessageTableViewController()
-        //MARK:- Important
+        // MARK:- This is nothing but delegating the messageController, We actually did this in the other way by naming it as var delegate: MessagesController? and call here as newMessageController.delegate = self
         newMessageController.messageController = self
         let navBar = UINavigationController(rootViewController: newMessageController)
         newMessageController.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelBarButton))

@@ -34,7 +34,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate {
         collectionView?.backgroundColor = UIColor.white
         
         
-        
         setUpInputsComponents()
     }
     
@@ -95,8 +94,10 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate {
 //        let ref: DatabaseReference!
         let ref = Database.database().reference().child("messages")
         let chinldRef = ref.childByAutoId()
-        
-        let values = ["text" : messageTextField.text!, "name" : ""]
+        let toId = user?.id
+        let fromId = Auth.auth().currentUser?.uid
+        let timeStamp = Int(Date().timeIntervalSince1970)
+        let values = ["text" : messageTextField.text!, "toId": toId, "fromId": fromId, "timeStamp": timeStamp] as [String : AnyObject]
         chinldRef.updateChildValues(values)
     }
 

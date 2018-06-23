@@ -12,16 +12,77 @@ import Firebase
 class MessagesController: UITableViewController {
     
 
+    let cellid = "cellID"
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        
+        tableView.register(userCell.self, forCellReuseIdentifier: cellid)
         //var     ref.updateChildValues(["someValue": 123123])
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Log out", style: .plain, target: self, action: #selector(handleLogOut))
         let image = UIImage(named: "Icon-Small")
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: image, landscapeImagePhone: nil, style: .plain, target: self, action: #selector(handleNewMessage))
         
         checkIfUserLoggedIn()
+        observeMessages()
+        
+        tableView.rowHeight = 72
         }
+    
+    var messages = [Messages]()
+    var messageDictionary = [String : Messages]()
+    
+    func observeMessages(){
+        
+        let ref = Database.database().reference().child("messages")
+        ref.observe(.childAdded, with: { (snapshot) in
+            
+            if let dictionary = snapshot.value as? [String : AnyObject]{
+                let message = Messages()
+                message.toId = dictionary["toId"] as? String
+                message.text = dictionary["text"] as? String
+                message.timeStamp = dictionary["timeStamp"] as? NSNumber
+                message.fromId = dictionary["fromId"] as? String
+//                self.messages.append(message)
+//                print(message.text)
+                
+                if let toId = message.toId{
+                    self.messageDictionary[toId] = message
+                    self.messages = Array(self.messageDictionary.values)
+                    self.messages.sort(by: { (message1, message2) -> Bool in
+                        return (message1.timeStamp?.int32Value)! > (message2.timeStamp?.int32Value)!
+                    })
+                }
+                
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            }
+            
+        }, withCancel: nil)
+        
+    }
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return messages.count
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellid , for: indexPath) as! userCell
+        
+        let message = messages[indexPath.row]
+     
+        cell.message = message
+        
+        
+        return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    
     
     func checkIfUserLoggedIn(){
         if Auth.auth().currentUser?.uid == nil {
@@ -94,7 +155,7 @@ class MessagesController: UITableViewController {
         containerView.centerXAnchor.constraint(equalTo: titleView.centerXAnchor).isActive = true
         containerView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor).isActive = true
  
-        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+//        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
     }
     
     
@@ -103,8 +164,8 @@ class MessagesController: UITableViewController {
         
         let chatController = chatLogController(collectionViewLayout: UICollectionViewFlowLayout())
         chatController.user = user
+//        present(chatController, animated: true, completion: nil)
         self.navigationController?.pushViewController(chatController, animated: true)
-    
     }
     
     @objc func handleLogOut() {

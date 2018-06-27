@@ -16,19 +16,7 @@ class userCell: UITableViewCell {
     
     var message: Messages? {
         didSet {
-            let toId = message?.toId
-            let ref = Database.database().reference().child("users").child(toId!)
-            
-            ref.observeSingleEvent(of: .value) { (snapshot) in
-                if let dictionary = snapshot.value as? [String : AnyObject]{
-                    self.textLabel?.text = dictionary["name"] as? String
-                    if let profileUrl = dictionary["profileImageUrl"]{
-                        self.profileImageView.loadImageUsingCacheWithUrlString(profileUrl as! String)
-                    }
-                    
-                }
-                
-            }
+          setupNameAndAvatar()
             
             detailTextLabel?.text = message?.text
             
@@ -40,6 +28,24 @@ class userCell: UITableViewCell {
             }
             
         }
+    }
+    
+    private func setupNameAndAvatar() {
+        
+        
+        
+        guard let id = message?.chatPartnerId() else {return}
+        let ref = Database.database().reference().child("users").child(id)
+        
+        ref.observeSingleEvent(of: .value) { (snapshot) in
+            if let dictionary = snapshot.value as? [String : AnyObject]{
+                self.textLabel?.text = dictionary["name"] as? String
+                if let profileUrl = dictionary["profileImageUrl"]{
+                    self.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileUrl as! String)
+                }
+            }
+        }
+        
     }
     
     let profileImageView: UIImageView = {

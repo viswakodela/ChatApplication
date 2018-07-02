@@ -45,7 +45,7 @@ class MessagesController: UITableViewController {
         let ref =  Database.database().reference().child("user-messages").child(uid)
         
         ref.observe(.childAdded, with: { (snapshot) in
-//            print(snapshot)
+            print(snapshot)
             let messageId = snapshot.key
             let messageReference = Database.database().reference().child("messages").child(messageId)
 
@@ -61,14 +61,14 @@ class MessagesController: UITableViewController {
                     //                self.messages.append(message)
                     //                print(message.text)
                     
-                    if let toId = message.toId{
+                    let chatPartnerId = message.chatPartnerId()
                         //MARK:- Lots of doubts
-                        self.messageDictionary[toId] = message
+                        self.messageDictionary[chatPartnerId] = message
                         self.messages = Array(self.messageDictionary.values)
                         self.messages.sort(by: { (message1, message2) -> Bool in
                             return (message1.timeStamp?.intValue)! > (message2.timeStamp?.intValue)!
                         })
-                    }
+                    
                     
                     DispatchQueue.main.async {
                         self.tableView.reloadData()
@@ -190,6 +190,7 @@ class MessagesController: UITableViewController {
         observeUserMessages()
         
         let titleView = UIView()
+//        titleView.backgroundColor =  UIColor.gray
         titleView.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
 //        titleView.backgroundColor = UIColor.red
         self.navigationItem.titleView = titleView
@@ -240,6 +241,7 @@ class MessagesController: UITableViewController {
         chatController.user = user
 //        present(chatController, animated: true, completion: nil)
         self.navigationController?.pushViewController(chatController, animated: true)
+        
     }
     
     @objc func handleLogOut() {

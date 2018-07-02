@@ -99,6 +99,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
         
         return cell
+        
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

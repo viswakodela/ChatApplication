@@ -20,7 +20,7 @@ class MessagesController: UITableViewController {
         tableView.register(userCell.self, forCellReuseIdentifier: cellid)
         //var     ref.updateChildValues(["someValue": 123123])
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Log out", style: .plain, target: self, action: #selector(handleLogOut))
-        let image = UIImage(named: "Icon-Small")
+        let image = UIImage(named: "new_message_icon")
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: image, landscapeImagePhone: nil, style: .plain, target: self, action: #selector(handleNewMessage))
         
         checkIfUserLoggedIn()
@@ -45,7 +45,7 @@ class MessagesController: UITableViewController {
         let ref =  Database.database().reference().child("user-messages").child(uid)
         
         ref.observe(.childAdded, with: { (snapshot) in
-            print(snapshot)
+//            print(snapshot)
             let messageId = snapshot.key
             let messageReference = Database.database().reference().child("messages").child(messageId)
 
@@ -70,10 +70,10 @@ class MessagesController: UITableViewController {
                         })
                     
                     
-                    DispatchQueue.main.async {
-                        self.tableView.reloadData()
-                    }
+                   
                 }
+                self.timer?.invalidate()
+                self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)
 
 
             }, withCancel: nil)
@@ -82,6 +82,14 @@ class MessagesController: UITableViewController {
         
     }
     
+    var timer: Timer?
+    
+    @objc func handleReloadTable() {
+        print("reload Table")
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+    }
     
     func observeMessages(){
         

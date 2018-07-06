@@ -69,11 +69,12 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         
         collectionView?.backgroundColor = UIColor.white
         collectionView?.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0)
-        collectionView?.scrollIndicatorInsets = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0)
+//        collectionView?.scrollIndicatorInsets = UIEdgeInsets(top: 8, left: 0, bottom: 50, right: 0)
         collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
         collectionView?.alwaysBounceVertical = true
         
         navigationController?.navigationBar.prefersLargeTitles = true
+        
         
         setUpInputsComponents()
     }
@@ -94,18 +95,49 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         cell.textView.text = message.text
         
 
-        // Modify the buubles View's Width
+        // Adjusting the buubles View's Width
         
         cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
         
+        setUpCell(cell: cell, message: message)
+        
         return cell
         
+    }
+    
+    private func setUpCell(cell: ChatMessageCell, message: Messages){
+        
+        if let profileImageUrl = self.user?.profileImageUrl{
+            cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+        }
+        
+        if message.fromId == Auth.auth().currentUser?.uid {
+            // blue Bubble
+            cell.bubbleView.backgroundColor = UIColor(r: 0, g: 137, b: 249)
+            cell.textView.textColor = UIColor.white
+            cell.profileImageView.isHidden = true
+            cell.bubbleViewRightAnchor?.isActive = true
+            cell.bubbleViewLeftAnchor?.isActive = false
+        }else{
+            //white Bubble
+            cell.bubbleView.backgroundColor = UIColor(r: 240, g: 240, b: 240)
+            cell.textView.textColor = UIColor.black
+            cell.profileImageView.isHidden = false
+            cell.bubbleViewRightAnchor?.isActive = false
+            cell.bubbleViewLeftAnchor?.isActive = true
+           
+        }
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        collectionView?.collectionViewLayout.invalidateLayout()
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         var height: CGFloat = 80
         
+        // Adjusting the bubble view's height
         if let text = messages[indexPath.item].text {
             height = estimateFrameForText(text: text).height + 20
         }
@@ -190,6 +222,9 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             if error != nil{
                 print(error ?? "")
             }
+            
+            // This is to make the messageTextField gets nil when evr the user hits the send button
+            self.messageTextField.text = nil
             
             let messageRef = Database.database().reference().child("user-messages").child(fromId)
             

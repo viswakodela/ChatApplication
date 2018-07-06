@@ -14,7 +14,43 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     var user: Users? {
         didSet {
             navigationItem.title = user?.name
+            
+            observeMessages()
         }
+    } 
+    
+    
+    var messages = [Messages]()
+    
+    func observeMessages() {
+
+        guard let id = Auth.auth().currentUser?.uid else {
+            return
+        }
+        
+        let userMessageRef = Database.database().reference().child("user-messages").child(id)
+        userMessageRef.observe(.childAdded, with: { (snapshot) in
+            let messageId = snapshot.key
+            let ref = Database.database().reference().child("messages").child(messageId)
+            ref.observe(.value, with: { (snapshot) in
+                guard let dictionary = snapshot.value as? [String : AnyObject] else {return}
+                
+                let message = Messages()
+                message.fromId = dictionary["fromId"] as? String
+                message.text = dictionary["text"] as? String
+                message.timeStamp = dictionary["timeStamp"] as? NSNumber
+                message.toId = dictionary["toId"] as? String
+                
+                if message.chatPartnerId() == self.user?.id{
+                    self.messages.append(message)
+                    
+                    DispatchQueue.main.async {
+                        self.collectionView?.reloadData()
+                    }
+                } 
+            }, withCancel: nil)
+        }, withCancel: nil)
+        
     }
     
     lazy var messageTextField: UITextField = {
@@ -32,26 +68,90 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         
         
         collectionView?.backgroundColor = UIColor.white
-        collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView?.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0)
+//        collectionView?.scrollIndicatorInsets = UIEdgeInsets(top: 8, left: 0, bottom: 50, right: 0)
+        collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
+        collectionView?.alwaysBounceVertical = true
+        
+        navigationController?.navigationBar.prefersLargeTitles = true
         
         
         setUpInputsComponents()
     }
     
+
+    
     
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 5
+        return messages.count
     }
     
     let cellId = "cellId"
+    
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath)
-        cell.backgroundColor = UIColor.blue
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! ChatMessageCell
+        
+        let message = messages[indexPath.item]
+        cell.textView.text = message.text
+        
+
+        // Adjusting the buubles View's Width
+        
+        cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
+        
+        setUpCell(cell: cell, message: message)
+        
         return cell
+        
+    }
+    
+    private func setUpCell(cell: ChatMessageCell, message: Messages){
+        
+        if let profileImageUrl = self.user?.profileImageUrl{
+            cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+        }
+        
+        if message.fromId == Auth.auth().currentUser?.uid {
+            // blue Bubble
+            cell.bubbleView.backgroundColor = UIColor(r: 0, g: 137, b: 249)
+            cell.textView.textColor = UIColor.white
+            cell.profileImageView.isHidden = true
+            cell.bubbleViewRightAnchor?.isActive = true
+            cell.bubbleViewLeftAnchor?.isActive = false
+        }else{
+            //white Bubble
+            cell.bubbleView.backgroundColor = UIColor(r: 240, g: 240, b: 240)
+            cell.textView.textColor = UIColor.black
+            cell.profileImageView.isHidden = false
+            cell.bubbleViewRightAnchor?.isActive = false
+            cell.bubbleViewLeftAnchor?.isActive = true
+           
+        }
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        collectionView?.collectionViewLayout.invalidateLayout()
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: view.frame.width, height: 80)
+        
+        var height: CGFloat = 80
+        
+        // Adjusting the bubble view's height
+        if let text = messages[indexPath.item].text {
+            height = estimateFrameForText(text: text).height + 20
+        }
+        
+        return CGSize(width: view.frame.width, height: height)
+    }
+    
+    private func estimateFrameForText(text: String) -> CGRect {
+        
+        let size = CGSize(width: 200, height: 1000)
+//        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+        
+        return NSString(string: text).boundingRect(with: size, options: .usesLineFragmentOrigin, attributes: [.font: UIFont.systemFont(ofSize: 16)], context: nil)
+        
     }
     
     
@@ -59,7 +159,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     func setUpInputsComponents() {
 
         let containerView = UIView()
-//        containerView.backgroundColor = UIColor.red
+        containerView.backgroundColor = UIColor.white
         containerView.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(containerView)
@@ -123,6 +223,9 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 print(error ?? "")
             }
             
+            // This is to make the messageTextField gets nil when evr the user hits the send button
+            self.messageTextField.text = nil
+            
             let messageRef = Database.database().reference().child("user-messages").child(fromId)
             
             let messageId = chinldRef.key
@@ -130,8 +233,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             
             let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId)
             
-            recepientUserMessageRef.updateChildValues([messageId : 1]
-            )
+            recepientUserMessageRef.updateChildValues([messageId : 1])
             
         }
         

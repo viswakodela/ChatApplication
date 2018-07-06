@@ -20,7 +20,7 @@ class MessagesController: UITableViewController {
         tableView.register(userCell.self, forCellReuseIdentifier: cellid)
         //var     ref.updateChildValues(["someValue": 123123])
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Log out", style: .plain, target: self, action: #selector(handleLogOut))
-        let image = UIImage(named: "Icon-Small")
+        let image = UIImage(named: "new_message_icon")
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: image, landscapeImagePhone: nil, style: .plain, target: self, action: #selector(handleNewMessage))
         
         checkIfUserLoggedIn()
@@ -61,19 +61,19 @@ class MessagesController: UITableViewController {
                     //                self.messages.append(message)
                     //                print(message.text)
                     
-                    if let toId = message.toId{
+                    let chatPartnerId = message.chatPartnerId()
                         //MARK:- Lots of doubts
-                        self.messageDictionary[toId] = message
+                        self.messageDictionary[chatPartnerId] = message
                         self.messages = Array(self.messageDictionary.values)
                         self.messages.sort(by: { (message1, message2) -> Bool in
                             return (message1.timeStamp?.intValue)! > (message2.timeStamp?.intValue)!
                         })
-                    }
                     
-                    DispatchQueue.main.async {
-                        self.tableView.reloadData()
-                    }
+                    
+                   
                 }
+                self.timer?.invalidate()
+                self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)
 
 
             }, withCancel: nil)
@@ -82,6 +82,14 @@ class MessagesController: UITableViewController {
         
     }
     
+    var timer: Timer?
+    
+    @objc func handleReloadTable() {
+        print("reload Table")
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+    }
     
     func observeMessages(){
         
@@ -190,6 +198,7 @@ class MessagesController: UITableViewController {
         observeUserMessages()
         
         let titleView = UIView()
+//        titleView.backgroundColor =  UIColor.gray
         titleView.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
 //        titleView.backgroundColor = UIColor.red
         self.navigationItem.titleView = titleView
@@ -240,6 +249,7 @@ class MessagesController: UITableViewController {
         chatController.user = user
 //        present(chatController, animated: true, completion: nil)
         self.navigationController?.pushViewController(chatController, animated: true)
+        
     }
     
     @objc func handleLogOut() {

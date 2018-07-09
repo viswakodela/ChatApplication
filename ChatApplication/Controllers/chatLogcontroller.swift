@@ -24,12 +24,13 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     
     func observeMessages() {
 
-        guard let id = Auth.auth().currentUser?.uid else {
-            return
-        }
+        guard let id = Auth.auth().currentUser?.uid else {return}
         
-        let userMessageRef = Database.database().reference().child("user-messages").child(id)
+        guard let toId = user?.id else{return}
+        
+        let userMessageRef = Database.database().reference().child("user-messages").child(id).child(toId)
         userMessageRef.observe(.childAdded, with: { (snapshot) in
+//            print(snapshot)
             let messageId = snapshot.key
             let ref = Database.database().reference().child("messages").child(messageId)
             ref.observe(.value, with: { (snapshot) in
@@ -40,14 +41,19 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 message.text = dictionary["text"] as? String
                 message.timeStamp = dictionary["timeStamp"] as? NSNumber
                 message.toId = dictionary["toId"] as? String
-                
-                if message.chatPartnerId() == self.user?.id{
-                    self.messages.append(message)
-                    
-                    DispatchQueue.main.async {
-                        self.collectionView?.reloadData()
-                    }
-                } 
+                self.messages.append(message)
+                DispatchQueue.main.async {
+                    self.collectionView?.reloadData()
+                }
+
+//                Check Episode 16 if any doubts
+//                if message.chatPartnerId() == self.user?.id{
+//                    self.messages.append(message)
+//
+//                    DispatchQueue.main.async {
+//                        self.collectionView?.reloadData()
+//                    }
+//                }
             }, withCancel: nil)
         }, withCancel: nil)
         
@@ -111,7 +117,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         setUpCell(cell: cell, message: message)
         
         return cell
-        
+         
     }
     
     private func setUpCell(cell: ChatMessageCell, message: Messages){
@@ -288,12 +294,12 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             // This is to make the messageTextField gets nil when evr the user hits the send button
             self.messageTextField.text = nil
             
-            let messageRef = Database.database().reference().child("user-messages").child(fromId)
+            let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
             
             let messageId = chinldRef.key
             messageRef.updateChildValues([messageId : 1])
             
-            let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId)
+            let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
             
             recepientUserMessageRef.updateChildValues([messageId : 1])
             

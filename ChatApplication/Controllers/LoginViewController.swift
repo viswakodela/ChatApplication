@@ -89,6 +89,7 @@ class LoginViewController: UIViewController, UIImagePickerControllerDelegate, UI
                         print(error ?? "Unknown error")
                     }
                     
+//                    print(metadata)
                     storageRef.downloadURL(completion: { (url, err) in
                         if error != nil{
                             print(error ?? "")

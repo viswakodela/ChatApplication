@@ -34,6 +34,8 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             let messageId = snapshot.key
             let ref = Database.database().reference().child("messages").child(messageId)
             ref.observe(.value, with: { (snapshot) in
+                
+                print(snapshot)
                 guard let dictionary = snapshot.value as? [String : AnyObject] else {return}
                 
                 let message = Messages()
@@ -42,9 +44,14 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 message.timeStamp = dictionary["timeStamp"] as? NSNumber
                 message.toId = dictionary["toId"] as? String
                 message.imageUrl = dictionary["imageUrl"] as? String
+                message.imageHeight = dictionary["imageHeight"] as? NSNumber
+                message.imageWidth = dictionary["imageWidth"] as? NSNumber
                 self.messages.append(message)
                 DispatchQueue.main.async {
                     self.collectionView?.reloadData()
+                    
+                    let indexpath = NSIndexPath(item: self.messages.count-1, section: 0)
+                    self.collectionView?.scrollToItem(at: indexpath as IndexPath, at: .bottom, animated: true)
                 }
 
 //                Check Episode 16 if any doubts
@@ -97,7 +104,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         messageTextField.endEditing(true)
     }
     
-    
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return messages.count
     }
@@ -110,16 +116,16 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let message = messages[indexPath.item]
         cell.textView.text = message.text
         
-
+        setUpCell(cell: cell, message: message)
+        
         // Adjusting the buubles View's Width
         if let text = message.text{
            cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+        } else if message.imageUrl != nil {
+            cell.bubbleWidthAnchor?.constant = 200
         }
         
-        setUpCell(cell: cell, message: message)
-        
         return cell
-         
     }
     
     private func setUpCell(cell: ChatMessageCell, message: Messages){
@@ -162,9 +168,16 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         
         var height: CGFloat = 80
         
+        let message = messages[indexPath.row]
         // Adjusting the bubble view's height
-        if let text = messages[indexPath.item].text {
+        if let text = message.text {
             height = estimateFrameForText(text: text).height + 20
+        } else if let imageWidth = message.imageWidth?.floatValue, let imageHeight = message.imageHeight?.floatValue {
+            
+            // In Geometry, if two Rectangles are of same Height and Width
+            // Then h1 / w1 = h2 / w2
+            // Solution==>  h1 = h2 / w1 * w2
+            height = CGFloat(imageHeight / imageWidth * 200)
         }
         
         return CGSize(width: view.frame.width, height: height)
@@ -238,6 +251,16 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         return containerView
     }()
     
+    override var inputAccessoryView: UIView?{
+        get {
+            return containertView
+        }
+    }
+    
+    override var canBecomeFirstResponder: Bool{
+        return true
+    }
+    
     @objc func handleUploadButton() {
         
         let imagePicker = UIImagePickerController()
@@ -279,19 +302,19 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                     print(error ?? "")
                 }
                 if let imageUrl = url?.absoluteString{
-                    self.sendMessageWithImageUrl(imageUrl: imageUrl)
+                    self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image)
                 }
             })
         }
     }
     
-    func sendMessageWithImageUrl(imageUrl: String){
+    func sendMessageWithImageUrl(imageUrl: String, image: UIImage){
         let ref = Database.database().reference().child("messages")
         let chinldRef = ref.childByAutoId()
         guard let toId = user?.id else {return}
         guard let fromId = Auth.auth().currentUser?.uid else{fatalError("No user Logged in")}
         let timeStamp = Int(Date().timeIntervalSince1970)
-        let values = ["imageUrl" : imageUrl, "toId": toId, "fromId": fromId, "timeStamp": timeStamp] as [String : AnyObject]
+        let values = ["toId": toId, "fromId": fromId, "timeStamp": timeStamp, "imageUrl" : imageUrl, "imageHeight": image.size.height, "imageWidth": image.size.width] as [String : AnyObject]
         //        chinldRef.updateChildValues(values)
         
         chinldRef.updateChildValues(values) { (error, ref) in
@@ -314,66 +337,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         }
     }
     
-    override var inputAccessoryView: UIView?{
-        get {
-            return containertView
-        }
-    }
-    
-    override var canBecomeFirstResponder: Bool{
-        return true
-    }
-    
-    
-//    func setUpInputsComponents() {
-//
-//        let containerView = UIView()
-//        containerView.backgroundColor = UIColor.white
-//        containerView.translatesAutoresizingMaskIntoConstraints = false
-//
-//        view.addSubview(containerView)
-//
-//        containerView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-//        containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
-//        containerView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
-//        containerView.heightAnchor.constraint(equalToConstant: 50).isActive = true
-//
-//        let sendButton = UIButton(type: .system)
-//        sendButton.setTitle("Send", for: .normal)
-//        sendButton.tintColor = UIColor.blue
-//        sendButton.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
-//        sendButton.translatesAutoresizingMaskIntoConstraints = false
-//        containerView.addSubview(sendButton)
-//
-//
-//
-//        sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor).isActive = true
-//        sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-//        sendButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
-//        sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
-//
-//
-//        containerView.addSubview(messageTextField)
-//
-//
-//
-//        messageTextField.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8).isActive = true
-//        messageTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
-//        messageTextField.rightAnchor.constraint(equalTo: sendButton.leftAnchor, constant: 8).isActive = true
-////        messageTextField.widthAnchor.constraint(equalToConstant: 100).isActive = true
-//        messageTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor).isActive = true
-//
-//        let seperaterLineView = UIView()
-//        seperaterLineView.backgroundColor = UIColor(r: 220, g: 220, b: 220)
-//        seperaterLineView.translatesAutoresizingMaskIntoConstraints = false
-//        containerView.addSubview(seperaterLineView)
-//
-//        seperaterLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor).isActive = true
-//        seperaterLineView.topAnchor.constraint(equalTo: containerView.topAnchor).isActive = true
-//        seperaterLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor).isActive = true
-//        seperaterLineView.heightAnchor.constraint(equalToConstant: 1).isActive = true
-//
-//    }
     
     @objc func handleSend() {
         

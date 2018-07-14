@@ -35,7 +35,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             let ref = Database.database().reference().child("messages").child(messageId)
             ref.observe(.value, with: { (snapshot) in
                 
-                print(snapshot)
+//                print(snapshot)
                 guard let dictionary = snapshot.value as? [String : AnyObject] else {return}
                 
                 let message = Messages()
@@ -72,7 +72,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let texField = UITextField()
         texField.placeholder = "Enter Message..."
         texField.delegate = self
-        
         texField.translatesAutoresizingMaskIntoConstraints = false
         return texField
     }()
@@ -116,13 +115,19 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let message = messages[indexPath.item]
         cell.textView.text = message.text
         
+        // Delegating
+        cell.chatController = self
+        
         setUpCell(cell: cell, message: message)
         
         // Adjusting the buubles View's Width
         if let text = message.text{
-           cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+            cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+            cell.textView.isHidden = false
         } else if message.imageUrl != nil {
             cell.bubbleWidthAnchor?.constant = 200
+            cell.bubbleView.backgroundColor = UIColor.clear
+            cell.textView.isHidden = true
         }
         
         return cell
@@ -374,5 +379,71 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         handleSend()
         return true
+    }
+    
+    
+    var startingFrame: CGRect?
+    var blackBackgroundImageView: UIView?
+    var startingImagView: UIImageView?
+    
+    func perfornZoomInForStartingImageView(startingImagView: UIImageView){
+        
+        self.startingImagView = startingImagView
+        self.startingImagView?.isHidden = true
+        
+        startingFrame = startingImagView.superview?.convert(startingImagView.frame, to: nil)
+        
+//        print(startingFrame)
+        
+        let zoomingImageView = UIImageView(frame: startingFrame!)
+        zoomingImageView.image = startingImagView.image
+        zoomingImageView.isUserInteractionEnabled = true
+        zoomingImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleImageZoomOut(tapGesture:))))
+        
+        if let keyWindow = UIApplication.shared.keyWindow{
+            
+            blackBackgroundImageView = UIView(frame: keyWindow.frame)
+            blackBackgroundImageView?.backgroundColor = UIColor.black
+            blackBackgroundImageView?.alpha = 0
+            keyWindow.addSubview(blackBackgroundImageView!)
+            
+            keyWindow.addSubview(zoomingImageView)
+            
+            UIView.animate(withDuration: 0.2, animations: {
+                
+                self.blackBackgroundImageView?.alpha = 1
+                self.containertView.alpha = 0
+                
+                //math
+                // h2 / w1 = h1 / w1
+                // h2  = h1 / w1 * w1
+                let height = self.startingFrame!.height / self.startingFrame!.width * keyWindow.frame.width
+                
+                zoomingImageView.frame = CGRect(x: 0, y: 0, width: keyWindow.frame.width, height: height)
+                
+                zoomingImageView.center = keyWindow.center
+                
+            }, completion: nil)
+        }
+    }
+    
+    @objc func handleImageZoomOut(tapGesture: UITapGestureRecognizer){
+    
+        if let zoomOutImageView = tapGesture.view{
+            
+            UIView.animate(withDuration: 0.2, animations: {
+                
+                zoomOutImageView.layer.cornerRadius = 16
+                zoomOutImageView.clipsToBounds = true
+                zoomOutImageView.frame = self.startingFrame!
+                self.blackBackgroundImageView?.alpha = 0
+                self.containertView.alpha = 1
+            }) { (completed: Bool) in
+                zoomOutImageView.removeFromSuperview()
+                self.startingImagView?.isHidden = false
+            }
+            
+            
+        }
     }
 }

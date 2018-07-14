@@ -162,6 +162,16 @@ class MessagesController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
+    @objc func showChatController(user: Users) {
+        
+        let chatController = chatLogController(collectionViewLayout: UICollectionViewFlowLayout())
+        chatController.user = user
+        
+        //        present(chatController, animated: true, completion: nil)
+        self.navigationController?.pushViewController(chatController, animated: true)
+        
+    }
+    
     
     
     func checkIfUserLoggedIn(){
@@ -244,16 +254,6 @@ class MessagesController: UITableViewController {
     }
     
     
-    @objc func showChatController(user: Users) {
-        
-        
-        let chatController = chatLogController(collectionViewLayout: UICollectionViewFlowLayout())
-        chatController.user = user
-//        present(chatController, animated: true, completion: nil)
-        self.navigationController?.pushViewController(chatController, animated: true)
-        
-    }
-    
     @objc func handleLogOut() {
         
         do {
@@ -268,8 +268,10 @@ class MessagesController: UITableViewController {
         present(loginController, animated: true, completion: nil)
     }
     
+    let newMessageController = NewMessageTableViewController()
+    
     @objc func handleNewMessage() {
-        let newMessageController = NewMessageTableViewController()
+        
         // MARK:- This is nothing but delegating the messageController, We actually did this in the other way by naming it as var delegate: MessagesController? and call here as newMessageController.delegate = self
         newMessageController.messageController = self
         let navBar = UINavigationController(rootViewController: newMessageController)

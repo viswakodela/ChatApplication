@@ -62,7 +62,7 @@ class NewMessageTableViewController: UITableViewController {
         
     }
     
-    weak var messageController = MessagesController()
+    weak var messageController: MessagesController?
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         tableView.deselectRow(at: indexPath, animated: true)

@@ -20,6 +20,8 @@ class Messages: NSObject {
     var imageWidth: NSNumber?
     var imageHeight: NSNumber?
     
+    var videoUrl: String?
+    
     func chatPartnerId() -> String {
         var chatPartnerId: String?
         

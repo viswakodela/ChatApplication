@@ -16,6 +16,7 @@ class userCell: UITableViewCell {
     
     var message: Messages? {
         didSet {
+            
           setupNameAndAvatar()
             
             detailTextLabel?.text = message?.text
@@ -31,8 +32,6 @@ class userCell: UITableViewCell {
     }
     
     private func setupNameAndAvatar() {
-        
-        
         
         guard let id = message?.chatPartnerId() else {return}
         let ref = Database.database().reference().child("users").child(id)

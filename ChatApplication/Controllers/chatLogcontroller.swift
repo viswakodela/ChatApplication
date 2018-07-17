@@ -8,6 +8,8 @@
 
 import UIKit
 import Firebase
+import MobileCoreServices
+import AVFoundation
 
 class chatLogController: UICollectionViewController, UITextFieldDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
@@ -35,7 +37,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             let ref = Database.database().reference().child("messages").child(messageId)
             ref.observe(.value, with: { (snapshot) in
                 
-                print(snapshot)
+//                print(snapshot)
                 guard let dictionary = snapshot.value as? [String : AnyObject] else {return}
                 
                 let message = Messages()
@@ -46,8 +48,11 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 message.imageUrl = dictionary["imageUrl"] as? String
                 message.imageHeight = dictionary["imageHeight"] as? NSNumber
                 message.imageWidth = dictionary["imageWidth"] as? NSNumber
+                message.videoUrl = dictionary["videoUrl"] as? String
                 self.messages.append(message)
+                
                 DispatchQueue.main.async {
+                    
                     self.collectionView?.reloadData()
                     
                     let indexpath = NSIndexPath(item: self.messages.count-1, section: 0)
@@ -72,7 +77,6 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let texField = UITextField()
         texField.placeholder = "Enter Message..."
         texField.delegate = self
-        
         texField.translatesAutoresizingMaskIntoConstraints = false
         return texField
     }()
@@ -116,13 +120,28 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let message = messages[indexPath.item]
         cell.textView.text = message.text
         
+        cell.message = message
+        
+        // Delegating
+        cell.chatControllerDelegate = self
+        
         setUpCell(cell: cell, message: message)
         
         // Adjusting the buubles View's Width
         if let text = message.text{
-           cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+            cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+            cell.textView.isHidden = false
         } else if message.imageUrl != nil {
             cell.bubbleWidthAnchor?.constant = 200
+            cell.bubbleView.backgroundColor = UIColor.clear
+            cell.textView.isHidden = true
+        }
+        
+        if message.videoUrl != nil {
+            cell.playButton.isHidden = false
+        }
+        else{
+            cell.playButton.isHidden = true
         }
         
         return cell
@@ -177,7 +196,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             // In Geometry, if two Rectangles are of same Height and Width
             // Then h1 / w1 = h2 / w2
             // Solution==>  h1 = h2 / w1 * w2
-            height = CGFloat(imageHeight / imageWidth * 200)
+            height = CGFloat(imageHeight / imageWidth * 250)
         }
         
         return CGSize(width: view.frame.width, height: height)
@@ -185,7 +204,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     
     private func estimateFrameForText(text: String) -> CGRect {
         
-        let size = CGSize(width: 200, height: 1000)
+        let size = CGSize(width: 250, height: 1000)
 //        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
         
         return NSString(string: text).boundingRect(with: size, options: .usesLineFragmentOrigin, attributes: [.font: UIFont.systemFont(ofSize: 16)], context: nil)
@@ -252,7 +271,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     }()
     
     override var inputAccessoryView: UIView?{
-        get {
+        get{
             return containertView
         }
     }
@@ -266,12 +285,82 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = self
         imagePicker.sourceType = .photoLibrary
+        imagePicker.mediaTypes = [kUTTypeImage, kUTTypeMovie] as [String]
         imagePicker.allowsEditing = true
         
         present(imagePicker, animated: true, completion: nil)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
+        
+        
+        if let videoUrl = info[UIImagePickerControllerMediaURL] as? NSURL {
+            // We selected a Video
+            handleVideoUpload(videoUrl: videoUrl)
+        }
+        else {
+             // We selected an Image
+            handleImageUpload(info: info)
+        }
+        dismiss(animated: true, completion: nil)
+    }
+    
+    
+    private func handleVideoUpload(videoUrl: NSURL) {
+        
+        let videoId = NSUUID().uuidString
+        let storage = Storage.storage().reference().child("message_videos").child(videoId)
+        storage.putFile(from: videoUrl as URL, metadata: nil) { (metadata, error) in
+            if error != nil {
+                print(error ?? "")
+            }
+            storage.downloadURL(completion: { (url, error) in
+                if error != nil {
+                    print(error ?? "")
+                }
+                
+                guard let thumbNailImage = self.thumbNailImageForVideoUrl(fileUrl: videoUrl) else{return}
+                
+                let imageId = NSUUID().uuidString
+                let storageRef = Storage.storage().reference().child("thumbnailo-images").child(imageId)
+                
+                guard let thumbnailUploadData = UIImageJPEGRepresentation(thumbNailImage, 0.2) else{return}
+                storageRef.putData(thumbnailUploadData, metadata: nil) { (metadata, error) in
+                    if error != nil {
+                        print(error ?? "Unable to upload the Image to your Firebase Storage")
+                    }
+                    
+                    storageRef.downloadURL(completion: { (urle, error) in
+                        if error != nil {
+                            print(error ?? "")
+                        }
+                        if let thumbNailimageUrl = urle?.absoluteString{
+                            if let videoUrl = url?.absoluteString{
+                                self.sendMessageWithImageUrl(imageUrl: thumbNailimageUrl, image: thumbNailImage, videoUrl: videoUrl)
+                            }
+                        }
+                    })
+                }
+            })
+        }
+    }
+    
+    private func thumbNailImageForVideoUrl(fileUrl: NSURL) -> UIImage? {
+        
+        let asset = AVAsset(url: fileUrl as URL)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        
+        do{
+            let thumbNailCGImage = try imageGenerator.copyCGImage(at: CMTime(value: 1, timescale: 60), actualTime: nil)
+            return UIImage(cgImage: thumbNailCGImage)
+        }catch{
+            print(error)
+        }
+        return nil
+    }
+    
+    private func handleImageUpload(info: [String : Any]){
+        
         var userPickedImage: UIImage?
         
         if let editedImage = info[UIImagePickerControllerEditedImage] as? UIImage {
@@ -284,8 +373,8 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             uploadToFirebaseStorageUsingImage(image: selectedImage)
         }
         
-        dismiss(animated: true, completion: nil)
     }
+    
     
     func uploadToFirebaseStorageUsingImage(image: UIImage){
         
@@ -302,38 +391,43 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                     print(error ?? "")
                 }
                 if let imageUrl = url?.absoluteString{
-                    self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image)
+                    self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image, videoUrl: nil)
+//                    self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image, videoUrl: nil)
                 }
             })
         }
     }
     
-    func sendMessageWithImageUrl(imageUrl: String, image: UIImage){
+    func sendMessageWithImageUrl(imageUrl: String?, image: UIImage, videoUrl: String?){
+        
         let ref = Database.database().reference().child("messages")
         let chinldRef = ref.childByAutoId()
         guard let toId = user?.id else {return}
         guard let fromId = Auth.auth().currentUser?.uid else{fatalError("No user Logged in")}
         let timeStamp = Int(Date().timeIntervalSince1970)
-        let values = ["toId": toId, "fromId": fromId, "timeStamp": timeStamp, "imageUrl" : imageUrl, "imageHeight": image.size.height, "imageWidth": image.size.width] as [String : AnyObject]
-        //        chinldRef.updateChildValues(values)
         
-        chinldRef.updateChildValues(values) { (error, ref) in
-            if error != nil{
-                print(error ?? "")
+        if let urlForImage = imageUrl {
+            
+            let values = ["toId": toId, "fromId": fromId, "timeStamp": timeStamp, "imageUrl" : urlForImage, "imageHeight": image.size.height, "imageWidth": image.size.width, "videoUrl": videoUrl as Any] as [String : AnyObject]
+
+            
+            chinldRef.updateChildValues(values) { (error, ref) in
+                if error != nil{
+                    print(error ?? "")
+                }
+                
+                // This is to make the messageTextField gets nil when evr the user hits the send button
+                self.messageTextField.text = nil
+                
+                let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
+                
+                let messageId = chinldRef.key
+                messageRef.updateChildValues([messageId : 1])
+                
+                let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
+                
+                recepientUserMessageRef.updateChildValues([messageId : 1])
             }
-            
-            // This is to make the messageTextField gets nil when evr the user hits the send button
-            self.messageTextField.text = nil
-            
-            let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
-            
-            let messageId = chinldRef.key
-            messageRef.updateChildValues([messageId : 1])
-            
-            let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
-            
-            recepientUserMessageRef.updateChildValues([messageId : 1])
-            
         }
     }
     
@@ -355,7 +449,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 print(error ?? "")
             }
             
-            // This is to make the messageTextField gets nil when evr the user hits the send button
+            // This is to make the messageTextField gets nil when ever the user hits the send button
             self.messageTextField.text = nil
             
             let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
@@ -374,5 +468,71 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         handleSend()
         return true
+    }
+    
+    
+    var startingFrame: CGRect?
+    var blackBackgroundView: UIView?
+    var startingImagView: UIImageView?
+    
+    func performZoomInForStartingImageView(startingImagView: UIImageView){
+        
+        self.startingImagView = startingImagView
+        self.startingImagView?.isHidden = true
+        
+        startingFrame = startingImagView.superview?.convert(startingImagView.frame, to: nil)
+        
+//        print(startingFrame)
+        
+        let zoomingImageView = UIImageView(frame: startingFrame!)
+        zoomingImageView.image = startingImagView.image
+        zoomingImageView.isUserInteractionEnabled = true
+        zoomingImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleImageZoomOut(tapGesture:))))
+        
+        if let keyWindow = UIApplication.shared.keyWindow{
+            
+            
+            blackBackgroundView = UIView(frame: keyWindow.frame)
+            blackBackgroundView?.backgroundColor = UIColor.black
+            blackBackgroundView?.alpha = 0
+
+            keyWindow.addSubview(blackBackgroundView!)
+            
+            keyWindow.addSubview(zoomingImageView)
+            
+            UIView.animate(withDuration: 0.2, animations: {
+                
+                self.blackBackgroundView?.alpha = 1
+                self.containertView.alpha = 0
+                
+                //math
+                // h2 / w1 = h1 / w1
+                // h2  = h1 / w1 * w1
+                let height = self.startingFrame!.height / self.startingFrame!.width * keyWindow.frame.width
+                
+                zoomingImageView.frame = CGRect(x: 0, y: 0, width: keyWindow.frame.width, height: height)
+                
+                zoomingImageView.center = keyWindow.center
+                
+            }, completion: nil)
+        }
+    }
+    
+    @objc func handleImageZoomOut(tapGesture: UITapGestureRecognizer){
+    
+        if let zoomOutImageView = tapGesture.view{
+            
+            UIView.animate(withDuration: 0.2, animations: {
+                
+                zoomOutImageView.layer.cornerRadius = 16
+                zoomOutImageView.clipsToBounds = true
+                zoomOutImageView.frame = self.startingFrame!
+                self.blackBackgroundView?.alpha = 0
+                self.containertView.alpha = 1
+            }) { (completed: Bool) in
+                zoomOutImageView.removeFromSuperview()
+                self.startingImagView?.isHidden = false
+            }   
+        }
     }
 }

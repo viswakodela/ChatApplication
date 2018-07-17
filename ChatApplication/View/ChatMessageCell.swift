@@ -10,7 +10,7 @@ import UIKit
 
 class ChatMessageCell: UICollectionViewCell {
     
-    var chatController: chatLogController?
+    var chatControllerDelegate: chatLogController?
     
     let textView: UITextView = {
         let tv = UITextView()
@@ -59,7 +59,7 @@ class ChatMessageCell: UICollectionViewCell {
         
         // PRO Tip: Don't perform a lot of custom logic inside of a view class
         if let imageView = tapGesture.view as? UIImageView{
-            chatController?.perfornZoomInForStartingImageView(startingImagView: imageView)
+            chatControllerDelegate?.performZoomInForStartingImageView(startingImagView: imageView)
         }
     }
     

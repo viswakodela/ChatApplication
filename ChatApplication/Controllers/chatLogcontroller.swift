@@ -8,6 +8,8 @@
 
 import UIKit
 import Firebase
+import MobileCoreServices
+import AVFoundation
 
 class chatLogController: UICollectionViewController, UITextFieldDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
@@ -116,7 +118,7 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         cell.textView.text = message.text
         
         // Delegating
-        cell.chatController = self
+        cell.chatControllerDelegate = self
         
         setUpCell(cell: cell, message: message)
         
@@ -271,12 +273,80 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = self
         imagePicker.sourceType = .photoLibrary
+        imagePicker.mediaTypes = [kUTTypeImage, kUTTypeMovie] as [String]
         imagePicker.allowsEditing = true
         
         present(imagePicker, animated: true, completion: nil)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
+        
+        
+        if let videoUrl = info[UIImagePickerControllerMediaURL] as? NSURL {
+            // We selected a Video
+            handleVideoUpload(videoUrl: videoUrl)
+        }
+        else {
+             // We selected an Image
+            handleImageUpload(info: info)
+        }
+        dismiss(animated: true, completion: nil)
+    }
+    
+    
+    private func handleVideoUpload(videoUrl: NSURL) {
+        
+        let videoId = NSUUID().uuidString
+        let storage = Storage.storage().reference().child("message_videos").child(videoId)
+        storage.putFile(from: videoUrl as URL, metadata: nil) { (metadata, error) in
+            if error != nil {
+                print(error ?? "")
+            }
+            storage.downloadURL(completion: { (url, error) in
+                if error != nil {
+                    print(error ?? "")
+                }
+                
+                guard let thumbNailImage = self.thumbNailImageForVideoUrl(fileUrl: videoUrl) else{return}
+                
+                let imageId = NSUUID().uuidString
+                let storageRef = Storage.storage().reference().child("thumbnailo-images").child(imageId)
+                
+                guard let uploadData = UIImageJPEGRepresentation(thumbNailImage, 0.2) else{return}
+                storageRef.putData(uploadData, metadata: nil) { (metadata, error) in
+                    if error != nil {
+                        print(error ?? "Unable to upload the Image to your Firebase Storage")
+                    }
+                    
+                    storageRef.downloadURL(completion: { (urle, error) in
+                        if error != nil {
+                            print(error ?? "")
+                        }
+                        if let imageUrl = urle?.absoluteString{
+                            self.sendMessageWithImageUrl(imageUrl: imageUrl, image: thumbNailImage)
+                        }
+                    })
+                }
+            })
+        }
+    }
+    
+    private func thumbNailImageForVideoUrl(fileUrl: NSURL) -> UIImage? {
+        
+        let asset = AVAsset(url: fileUrl as URL)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        
+        do{
+            let thumbNailCGImage = try imageGenerator.copyCGImage(at: CMTime(value: 1, timescale: 60), actualTime: nil)
+            return UIImage(cgImage: thumbNailCGImage)
+        }catch{
+            print(error)
+        }
+        return nil
+    }
+    
+    private func handleImageUpload(info: [String : Any]){
+        
         var userPickedImage: UIImage?
         
         if let editedImage = info[UIImagePickerControllerEditedImage] as? UIImage {
@@ -289,8 +359,8 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
             uploadToFirebaseStorageUsingImage(image: selectedImage)
         }
         
-        dismiss(animated: true, completion: nil)
     }
+    
     
     func uploadToFirebaseStorageUsingImage(image: UIImage){
         
@@ -308,38 +378,44 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 }
                 if let imageUrl = url?.absoluteString{
                     self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image)
+//                    self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image, videoUrl: nil)
                 }
             })
         }
     }
     
-    func sendMessageWithImageUrl(imageUrl: String, image: UIImage){
+    func sendMessageWithImageUrl(imageUrl: String?, image: UIImage){
+        
         let ref = Database.database().reference().child("messages")
         let chinldRef = ref.childByAutoId()
         guard let toId = user?.id else {return}
         guard let fromId = Auth.auth().currentUser?.uid else{fatalError("No user Logged in")}
         let timeStamp = Int(Date().timeIntervalSince1970)
-        let values = ["toId": toId, "fromId": fromId, "timeStamp": timeStamp, "imageUrl" : imageUrl, "imageHeight": image.size.height, "imageWidth": image.size.width] as [String : AnyObject]
-        //        chinldRef.updateChildValues(values)
-        
-        chinldRef.updateChildValues(values) { (error, ref) in
-            if error != nil{
-                print(error ?? "")
+        if let urlForImage = imageUrl{
+            
+            let values = ["toId": toId, "fromId": fromId, "timeStamp": timeStamp, "imageUrl" : urlForImage, "imageHeight": image.size.height, "imageWidth": image.size.width] as [String : AnyObject]
+
+            
+            chinldRef.updateChildValues(values) { (error, ref) in
+                if error != nil{
+                    print(error ?? "")
+                }
+                
+                // This is to make the messageTextField gets nil when evr the user hits the send button
+                self.messageTextField.text = nil
+                
+                let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
+                
+                let messageId = chinldRef.key
+                messageRef.updateChildValues([messageId : 1])
+                
+                let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
+                
+                recepientUserMessageRef.updateChildValues([messageId : 1])
+                
             }
-            
-            // This is to make the messageTextField gets nil when evr the user hits the send button
-            self.messageTextField.text = nil
-            
-            let messageRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
-            
-            let messageId = chinldRef.key
-            messageRef.updateChildValues([messageId : 1])
-            
-            let recepientUserMessageRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
-            
-            recepientUserMessageRef.updateChildValues([messageId : 1])
-            
         }
+        
     }
     
     
@@ -383,10 +459,10 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
     
     
     var startingFrame: CGRect?
-    var blackBackgroundImageView: UIView?
+    var blackBackgroundView: UIView?
     var startingImagView: UIImageView?
     
-    func perfornZoomInForStartingImageView(startingImagView: UIImageView){
+    func performZoomInForStartingImageView(startingImagView: UIImageView){
         
         self.startingImagView = startingImagView
         self.startingImagView?.isHidden = true
@@ -402,16 +478,16 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
         
         if let keyWindow = UIApplication.shared.keyWindow{
             
-            blackBackgroundImageView = UIView(frame: keyWindow.frame)
-            blackBackgroundImageView?.backgroundColor = UIColor.black
-            blackBackgroundImageView?.alpha = 0
-            keyWindow.addSubview(blackBackgroundImageView!)
+            blackBackgroundView = UIView(frame: keyWindow.frame)
+            blackBackgroundView?.backgroundColor = UIColor.black
+            blackBackgroundView?.alpha = 0
+            keyWindow.addSubview(blackBackgroundView!)
             
             keyWindow.addSubview(zoomingImageView)
             
             UIView.animate(withDuration: 0.2, animations: {
                 
-                self.blackBackgroundImageView?.alpha = 1
+                self.blackBackgroundView?.alpha = 1
                 self.containertView.alpha = 0
                 
                 //math
@@ -436,14 +512,12 @@ class chatLogController: UICollectionViewController, UITextFieldDelegate, UIColl
                 zoomOutImageView.layer.cornerRadius = 16
                 zoomOutImageView.clipsToBounds = true
                 zoomOutImageView.frame = self.startingFrame!
-                self.blackBackgroundImageView?.alpha = 0
+                self.blackBackgroundView?.alpha = 0
                 self.containertView.alpha = 1
             }) { (completed: Bool) in
                 zoomOutImageView.removeFromSuperview()
                 self.startingImagView?.isHidden = false
-            }
-            
-            
+            }   
         }
     }
 }

@@ -7,10 +7,52 @@
 //
 
 import UIKit
+import AVFoundation
 
 class ChatMessageCell: UICollectionViewCell {
     
     var chatControllerDelegate: chatLogController?
+    var message: Messages?
+    
+     let avtivityIndicator: UIActivityIndicatorView = {
+        let avi = UIActivityIndicatorView()
+        avi.translatesAutoresizingMaskIntoConstraints = false
+        avi.hidesWhenStopped = true
+        return avi
+    }()
+    
+    lazy var playButton: UIButton = {
+        let button = UIButton()
+        button.setImage(#imageLiteral(resourceName: "play"), for: .normal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(handlePlay), for: .touchUpInside)
+        return button
+    }()
+    
+    var playerLayer: AVPlayerLayer?
+    var player: AVPlayer?
+    @objc func handlePlay(){
+        
+        if let videoUrl = message?.videoUrl, let url = URL(string: videoUrl){
+            player = AVPlayer(url: url)
+
+            
+            playerLayer = AVPlayerLayer(player: player)
+            playerLayer?.frame = bubbleView.bounds
+            bubbleView.layer.addSublayer(playerLayer!)
+            
+            player?.play()
+            avtivityIndicator.startAnimating()
+            playButton.isHidden = true
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        playerLayer?.removeFromSuperlayer()
+        player?.pause()
+        avtivityIndicator.stopAnimating()
+    }
     
     let textView: UITextView = {
         let tv = UITextView()
@@ -57,6 +99,10 @@ class ChatMessageCell: UICollectionViewCell {
     
     @objc func handleZoomImage(tapGesture: UITapGestureRecognizer) {
         
+        if message?.videoUrl != nil {
+            return
+        }
+        
         // PRO Tip: Don't perform a lot of custom logic inside of a view class
         if let imageView = tapGesture.view as? UIImageView{
             chatControllerDelegate?.performZoomInForStartingImageView(startingImagView: imageView)
@@ -81,13 +127,27 @@ class ChatMessageCell: UICollectionViewCell {
         messageImageView.widthAnchor.constraint(equalTo: bubbleView.widthAnchor).isActive = true
         messageImageView.heightAnchor.constraint(equalTo: bubbleView.heightAnchor).isActive = true
         
+        bubbleView.addSubview(playButton)
+        
+        playButton.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor).isActive = true
+        playButton.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor).isActive = true
+        playButton.widthAnchor.constraint(equalToConstant: 50).isActive = true
+        playButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        
+        bubbleView.addSubview(avtivityIndicator)
+        
+        avtivityIndicator.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor).isActive = true
+        avtivityIndicator.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor).isActive = true
+        avtivityIndicator.widthAnchor.constraint(equalToConstant: 50).isActive = true
+        avtivityIndicator.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        
         bubbleViewRightAnchor = bubbleView.rightAnchor.constraint(equalTo: self.rightAnchor, constant: -8)
         bubbleViewRightAnchor?.isActive = false
         bubbleViewLeftAnchor = bubbleView.leftAnchor.constraint(equalTo: profileImageView.rightAnchor, constant: 8)
         bubbleViewLeftAnchor?.isActive = false // Should be false by default
         
         bubbleView.topAnchor.constraint(equalTo: self.topAnchor).isActive = true
-        bubbleWidthAnchor = bubbleView.widthAnchor.constraint(equalToConstant: 200)
+        bubbleWidthAnchor = bubbleView.widthAnchor.constraint(equalToConstant: 300)
         bubbleWidthAnchor?.isActive = true
         bubbleView.heightAnchor.constraint(equalTo: self.heightAnchor).isActive = true
         
